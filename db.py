@@ -35,17 +35,33 @@ def connect_to_mongo():
 def get_db():
     """
     Get the database instance
+    Creates a new connection if needed (handles Flask reloader)
     """
-    global db
-    if db is None:
-        db = connect_to_mongo()
-    return db
+    global client, db
+    try:
+        # Check if we have a valid connection
+        if client is not None:
+            client.admin.command('ping')
+        if db is None:
+            db = connect_to_mongo()
+        return db
+    except Exception:
+        # Connection is invalid, create a new one
+        client = None
+        db = None
+        return connect_to_mongo()
 
 def close_connection():
     """
     Close the MongoDB connection
     """
-    global client
-    if client:
-        client.close()
-        print("MongoDB connection closed")
+    global client, db
+    try:
+        if client:
+            client.close()
+            print("MongoDB connection closed")
+    except Exception as e:
+        print(f"Error closing MongoDB connection: {e}")
+    finally:
+        client = None
+        db = None
