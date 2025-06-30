@@ -1,23 +1,18 @@
 # Running the Quiztions API Server
 
-Due to Windows compatibility issues with Flask's development server, we provide multiple ways to run the server:
+Due to Windows compatibility issues with Flask's development server, we provide two ways to run the server:
 
-## Option 1: Simple Development Server (Recommended for Development)
-```bash
-python run_server.py
-```
-This runs the server without debug mode to avoid Windows socket errors.
-
-## Option 2: Production-Ready Server (Recommended for Testing/Production)
+## Option 1: Production-Ready Server (Recommended)
 ```bash
 python run_production.py
 ```
-This uses Waitress WSGI server which is stable and production-ready on Windows.
+This uses Waitress WSGI server which is stable, production-ready, and works perfectly on Windows without any socket errors.
 
-## Option 3: Direct Flask (May have socket errors on Windows)
+## Option 2: Direct Flask Development Server (Basic)
 ```bash
 python app.py
 ```
+This runs Flask's built-in development server with debug mode. May encounter socket errors on Windows but includes debugging features.
 This may encounter socket errors due to Flask's reloader on Windows.
 
 ## API Endpoints
