@@ -41,7 +41,8 @@ def index():
             'login': '/auth/login (POST)',
             'results': '/api/results (GET - requires token)',
             'quizzes': '/api/quizzes (GET - requires token)',
-            'quiz_detail': '/api/quizzes/<quiz_id> (GET - requires token)'
+            'quiz_detail': '/api/quizzes/<quiz_id> (GET - requires token)',
+            'submit_quiz': '/api/quizzes/<quiz_id>/submit (POST - requires token)'
         }
     })
 
