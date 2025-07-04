@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, request
 from bson.objectid import ObjectId
 from bson.errors import InvalidId
 from db import get_db
-from utils.auth_helpers import token_required
+from utils.auth_helpers import token_required, admin_required
 
 # Create the quizzes blueprint
 quiz_routes = Blueprint('quiz_routes', __name__)
@@ -199,6 +199,133 @@ def submit_quiz(user_id, quiz_id):
             'correct_answers': correct_answers,
             'total_questions': total_questions
         }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'error': f'Internal server error: {str(e)}'
+        }), 500
+
+@quiz_routes.route('/quizzes/create', methods=['POST'])
+@token_required
+@admin_required
+def create_quiz(user_id):
+    """
+    Create a new quiz (admin only)
+    """
+    try:
+        # Get JSON data from request
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'error': 'No JSON data provided'
+            }), 400
+        
+        # Validate required fields
+        title = data.get('title')
+        description = data.get('description')
+        questions = data.get('questions')
+        
+        if not title:
+            return jsonify({
+                'error': 'Title is required'
+            }), 400
+        
+        if not description:
+            return jsonify({
+                'error': 'Description is required'
+            }), 400
+        
+        if not questions:
+            return jsonify({
+                'error': 'Questions array is required'
+            }), 400
+        
+        if not isinstance(questions, list):
+            return jsonify({
+                'error': 'Questions must be an array'
+            }), 400
+        
+        if len(questions) == 0:
+            return jsonify({
+                'error': 'At least one question is required'
+            }), 400
+        
+        # Validate each question
+        for i, question in enumerate(questions):
+            if not isinstance(question, dict):
+                return jsonify({
+                    'error': f'Question at index {i} must be an object'
+                }), 400
+            
+            # Check required fields for each question
+            question_text = question.get('text')
+            options = question.get('options')
+            correct_answer = question.get('correct_answer')
+            
+            if not question_text:
+                return jsonify({
+                    'error': f'Question text is required for question at index {i}'
+                }), 400
+            
+            if not options:
+                return jsonify({
+                    'error': f'Options array is required for question at index {i}'
+                }), 400
+            
+            if not isinstance(options, list):
+                return jsonify({
+                    'error': f'Options must be an array for question at index {i}'
+                }), 400
+            
+            if len(options) < 2:
+                return jsonify({
+                    'error': f'At least 2 options required for question at index {i}'
+                }), 400
+            
+            if correct_answer is None:
+                return jsonify({
+                    'error': f'Correct answer is required for question at index {i}'
+                }), 400
+            
+            if not isinstance(correct_answer, int):
+                return jsonify({
+                    'error': f'Correct answer must be an integer for question at index {i}'
+                }), 400
+            
+            if correct_answer < 0 or correct_answer >= len(options):
+                return jsonify({
+                    'error': f'Correct answer index out of range for question at index {i}'
+                }), 400
+        
+        # Create quiz document
+        quiz_doc = {
+            'title': title.strip(),
+            'description': description.strip(),
+            'questions': []
+        }
+        
+        # Format questions
+        for question in questions:
+            formatted_question = {
+                'question': question['text'].strip(),
+                'options': [option.strip() for option in question['options']],
+                'correct_answer': question['correct_answer']
+            }
+            quiz_doc['questions'].append(formatted_question)
+        
+        # Get database connection and insert quiz
+        db = get_db()
+        quizzes_collection = db.quizzes
+        
+        result = quizzes_collection.insert_one(quiz_doc)
+        
+        return jsonify({
+            'message': 'Quiz created successfully',
+            'quiz_id': str(result.inserted_id),
+            'title': quiz_doc['title'],
+            'description': quiz_doc['description'],
+            'question_count': len(quiz_doc['questions'])
+        }), 201
         
     except Exception as e:
         return jsonify({

@@ -62,3 +62,39 @@ def token_required(f):
         return f(user_id, *args, **kwargs)
     
     return decorated_function
+
+def admin_required(f):
+    """
+    Decorator to require admin privileges
+    Must be used after token_required decorator
+    """
+    @wraps(f)
+    def decorated_function(user_id, *args, **kwargs):
+        try:
+            # Get database connection
+            db = get_db()
+            users_collection = db.users
+            
+            # Find user and check admin status
+            user = users_collection.find_one({'_id': ObjectId(user_id)})
+            
+            if not user:
+                return jsonify({
+                    'error': 'User not found'
+                }), 403
+            
+            # Check if user is admin
+            if not user.get('is_admin', False):
+                return jsonify({
+                    'error': 'Admin privileges required'
+                }), 403
+            
+            # User is admin, proceed to the route
+            return f(user_id, *args, **kwargs)
+            
+        except Exception as e:
+            return jsonify({
+                'error': f'Admin validation failed: {str(e)}'
+            }), 403
+    
+    return decorated_function
