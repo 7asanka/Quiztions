@@ -10,7 +10,7 @@ load_dotenv()
 
 # MongoDB connection configuration
 MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
-DATABASE_NAME = os.getenv('DATABASE_NAME', 'quiztsions')
+DATABASE_NAME = os.getenv('DATABASE_NAME', 'quiztions')
 
 # Global database connection
 client = None
