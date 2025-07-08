@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz - Quiztions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin: 0 0 10px 0;
+        }
+        .user-info {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        .logout-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .logout-btn:hover {
+            background-color: #d32f2f;
+        }
+        .nav-links {
+            margin-top: 15px;
+        }
+        .nav-links a {
+            color: #2196F3;
+            text-decoration: none;
+            margin: 0 15px;
+            font-weight: bold;
+        }
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .quiz-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+        .quiz-header h2 {
+            color: #333;
+            margin: 0 0 10px 0;
+        }
+        .quiz-header p {
+            color: #666;
+            margin: 0;
+        }
+        .question {
+            background-color: #fafafa;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .question h3 {
+            color: #333;
+            margin: 0 0 15px 0;
+        }
+        .option {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .option:hover {
+            background-color: #f0f0f0;
+        }
+        .option input[type="radio"] {
+            margin-right: 10px;
+        }
+        .submit-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .submit-btn:hover {
+            background-color: #45a049;
+        }
+        .cancel-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .cancel-btn:hover {
+            background-color: #d32f2f;
+        }
+        .results {
+            background-color: #e8f5e8;
+            border: 2px solid #4CAF50;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .results h2 {
+            color: #2e7d32;
+            margin: 0 0 20px 0;
+        }
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1b5e20;
+            margin: 15px 0;
+        }
+        .message {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 Quiztions</h1>
+        <div class="user-info">
+            Welcome, <span id="userEmail"></span>!
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+        <div class="nav-links">
+            <a href="quizzes.html">📝 Quizzes</a>
+            <a href="results.html">📊 Results</a>
+            <a href="admin.html">👨‍💼 Admin</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="quiz-content">
+            <div class="loading">Loading quiz...</div>
+        </div>
+        
+        <div id="results-content" class="hidden">
+            <!-- Results will be displayed here -->
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000';
+        
+        // Check authentication
+        const token = localStorage.getItem('authToken');
+        const userEmail = localStorage.getItem('userEmail');
+        
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+        
+        // Display user info
+        document.getElementById('userEmail').textContent = userEmail || 'User';
+        
+        // Get quiz ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const quizId = urlParams.get('id');
+        
+        if (!quizId) {
+            window.location.href = 'quizzes.html';
+        }
+        
+        let currentQuiz = null;
+        
+        // Load quiz on page load
+        loadQuiz();
+        
+        async function loadQuiz() {
+            const container = document.getElementById('quiz-content');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/quizzes/${quizId}`, {
+                    headers: {
+                        'x-access-token': token
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentQuiz = data.quiz;
+                    displayQuiz();
+                } else {
+                    container.innerHTML = `<div class="message error">Error: ${data.error}</div>`;
+                    if (response.status === 401) {
+                        logout();
+                    }
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="message error">Network error: ${error.message}</div>`;
+            }
+        }
+        
+        function displayQuiz() {
+            const container = document.getElementById('quiz-content');
+            
+            let questionsHtml = '';
+            
+            currentQuiz.questions.forEach((question, index) => {
+                questionsHtml += `
+                    <div class="question">
+                        <h3>Question ${index + 1}: ${question.question}</h3>
+                        ${question.options.map((option, optIndex) => `
+                            <div class="option">
+                                <label>
+                                    <input type="radio" name="q${index}" value="${optIndex}">
+                                    ${option}
+                                </label>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = `
+                <div class="quiz-header">
+                    <h2>${currentQuiz.title}</h2>
+                    <p>${currentQuiz.description}</p>
+                </div>
+                
+                <form id="quizForm">
+                    ${questionsHtml}
+                    <button type="submit" class="submit-btn">✅ Submit Quiz</button>
+                    <button type="button" class="cancel-btn" onclick="cancelQuiz()">❌ Cancel</button>
+                </form>
+            `;
+            
+            // Add form submit handler
+            document.getElementById('quizForm').addEventListener('submit', submitQuiz);
+        }
+        
+        async function submitQuiz(e) {
+            e.preventDefault();
+            
+            const answers = [];
+            
+            // Collect answers
+            for (let i = 0; i < currentQuiz.questions.length; i++) {
+                const selected = document.querySelector(`input[name="q${i}"]:checked`);
+                if (selected) {
+                    answers.push(parseInt(selected.value));
+                } else {
+                    alert(`Please answer question ${i + 1}`);
+                    return;
+                }
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/quizzes/${quizId}/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-access-token': token
+                    },
+                    body: JSON.stringify({ answers })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResults(data);
+                } else {
+                    alert(`Error: ${data.error}`);
+                    if (response.status === 401) {
+                        logout();
+                    }
+                }
+            } catch (error) {
+                alert(`Network error: ${error.message}`);
+            }
+        }
+        
+        function showResults(results) {
+            const quizContent = document.getElementById('quiz-content');
+            const resultsContent = document.getElementById('results-content');
+            
+            quizContent.classList.add('hidden');
+            resultsContent.classList.remove('hidden');
+            
+            resultsContent.innerHTML = `
+                <div class="results">
+                    <h2>🎊 Quiz Completed!</h2>
+                    <div class="score">Score: ${results.score}%</div>
+                    <p><strong>Correct Answers:</strong> ${results.correct_answers} out of ${results.total_questions}</p>
+                    <p><strong>Quiz:</strong> ${currentQuiz.title}</p>
+                    <br>
+                    <button class="submit-btn" onclick="window.location.href='quizzes.html'">🔙 Back to Quizzes</button>
+                    <button class="cancel-btn" onclick="window.location.href='results.html'">📊 View All Results</button>
+                </div>
+            `;
+        }
+        
+        function cancelQuiz() {
+            if (confirm('Are you sure you want to cancel this quiz?')) {
+                window.location.href = 'quizzes.html';
+            }
+        }
+        
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userEmail');
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>

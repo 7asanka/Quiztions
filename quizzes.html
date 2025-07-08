@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quizzes - Quiztions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin: 0 0 10px 0;
+        }
+        .user-info {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        .logout-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .logout-btn:hover {
+            background-color: #d32f2f;
+        }
+        .nav-links {
+            margin-top: 15px;
+        }
+        .nav-links a {
+            color: #2196F3;
+            text-decoration: none;
+            margin: 0 15px;
+            font-weight: bold;
+        }
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .quiz-item {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            background-color: #fafafa;
+        }
+        .quiz-item h3 {
+            color: #333;
+            margin: 0 0 10px 0;
+        }
+        .quiz-item p {
+            color: #666;
+            margin: 0 0 15px 0;
+        }
+        .start-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .start-btn:hover {
+            background-color: #45a049;
+        }
+        .refresh-btn {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .refresh-btn:hover {
+            background-color: #1976D2;
+        }
+        .message {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #b8daff;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 Quiztions</h1>
+        <div class="user-info">
+            Welcome, <span id="userEmail"></span>!
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+        <div class="nav-links">
+            <a href="quizzes.html">📝 Quizzes</a>
+            <a href="results.html">📊 Results</a>
+            <a href="admin.html">👨‍💼 Admin</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Available Quizzes</h2>
+        <button class="refresh-btn" onclick="loadQuizzes()">🔄 Refresh</button>
+        
+        <div id="quizzes-container">
+            <div class="loading">Loading quizzes...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000';
+        
+        // Check authentication
+        const token = localStorage.getItem('authToken');
+        const userEmail = localStorage.getItem('userEmail');
+        
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+        
+        // Display user info
+        document.getElementById('userEmail').textContent = userEmail || 'User';
+        
+        // Load quizzes on page load
+        loadQuizzes();
+        
+        async function loadQuizzes() {
+            const container = document.getElementById('quizzes-container');
+            container.innerHTML = '<div class="loading">Loading quizzes...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/quizzes`, {
+                    headers: {
+                        'x-access-token': token
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayQuizzes(data.quizzes);
+                } else {
+                    container.innerHTML = `<div class="message error">Error: ${data.error}</div>`;
+                    if (response.status === 401) {
+                        logout();
+                    }
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="message error">Network error: ${error.message}</div>`;
+            }
+        }
+        
+        function displayQuizzes(quizzes) {
+            const container = document.getElementById('quizzes-container');
+            
+            if (!quizzes || quizzes.length === 0) {
+                container.innerHTML = '<div class="message info">No quizzes available yet.</div>';
+                return;
+            }
+            
+            container.innerHTML = quizzes.map(quiz => `
+                <div class="quiz-item">
+                    <h3>${quiz.title}</h3>
+                    <p>${quiz.description}</p>
+                    <button class="start-btn" onclick="startQuiz('${quiz.id}')">Start Quiz</button>
+                </div>
+            `).join('');
+        }
+        
+        function startQuiz(quizId) {
+            window.location.href = `quiz.html?id=${quizId}`;
+        }
+        
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userEmail');
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>

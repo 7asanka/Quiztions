@@ -2,7 +2,7 @@
 Quiztions Flask API Application
 """
 import os
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 from auth import auth_blueprint
 from results import results_blueprint
 from quizzes import quiz_routes
@@ -31,7 +31,24 @@ app.register_blueprint(quiz_routes, url_prefix='/api')
 @app.route('/')
 def index():
     """
-    API root endpoint
+    Serve the login page as the default
+    NOTE: This is for demo purposes only
+    """
+    return send_from_directory('.', 'login.html')
+
+@app.route('/<path:filename>')
+def serve_static(filename):
+    """
+    Serve static HTML files
+    NOTE: This is for demo/testing purposes only
+    In production, use a proper web server (nginx, Apache) or CDN
+    """
+    return send_from_directory('.', filename)
+
+@app.route('/api/info')
+def api_info():
+    """
+    API information endpoint
     """
     return jsonify({
         'message': 'Welcome to Quiztions API!',
